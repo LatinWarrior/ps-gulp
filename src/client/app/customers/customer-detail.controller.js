@@ -4,7 +4,7 @@
     angular
         .module('app.customers')
         .controller('CustomerDetail', CustomerDetail);
-
+    
     CustomerDetail.$inject = ['$stateParams', '$window', 'dataservice', 'logger'];
     /* @ngInject */
     function CustomerDetail($stateParams, $window, dataservice, logger) {
