@@ -29,32 +29,36 @@ gulp.task('vet', function () {
         .pipe($.jshint.reporter('fail'));
 });
 
-gulp.task('clean', function (done) {    
+gulp.task('clean', function (done) {
     var delconfig = [].concat(config.build, config.temp);
     log('Cleaning: ' + $.util.colors.cyan(delconfig));
     del(delconfig, done);
 });
 
-gulp.task('clean-fonts', function (done) {    
+gulp.task('clean-fonts', function (done) {
     //clean(config.build + 'fonts/**/*.*', done);
-    del(config.build + 'fonts/**/*.*', done);
+    //del([config.build + 'fonts/**/*.*'], done);
+    return gulp
+        .src(config.build + 'fonts/**/*.*')
+        .pipe(clean);
 });
 
-gulp.task('clean-images', function (done) {    
+gulp.task('clean-images', function (done) {
     //clean(config.build + 'images/**/*.*', done);
     del(config.build + 'images/**/*.*', done);
 });
 
-gulp.task('clean-styles', function (done) {    
+gulp.task('clean-styles', function (done) {
     //clean(config.temp + '**/*.css', done);
     del(config.temp + '**/*.css', done);
 });
 
-gulp.task('styles', ['clean-styles'], function () {
+gulp.task('styles', function () {
     log('Compiling Less --> CSS');
 
     return gulp
         .src(config.less)
+        .pipe($.clean())
         .pipe($.plumber())
         .pipe($.less())
         .pipe($.autoprefixer({
@@ -63,25 +67,57 @@ gulp.task('styles', ['clean-styles'], function () {
         .pipe(gulp.dest(config.temp));
 });
 
-gulp.task('fonts', ['clean-fonts'], function () {
+gulp.task('fonts', function () {
 
     log('Copying fonts');
 
     return gulp
         .src(config.fonts)
+        .pipe($.clean())
         .pipe(gulp.dest(config.build + 'fonts'));
 });
 
-gulp.task('images', ['clean-images'], function () {
+gulp.task('images', function () {
 
     log('Copying and compressing the images');
 
     return gulp
         .src(config.images)
+        .pipe($.clean())
         .pipe($.imagemin({
             optimizationLevel: 4
         }))
         .pipe(gulp.dest(config.build + 'images'));
+});
+
+gulp.task('clean-code', function (done) {
+
+    var files = [].concat(
+        config.temp + '**/*.js',
+        config.build + '**/*.html',
+        config.build + 'js/**/*.js'
+    );
+
+    log('Cleaning files: ', files);
+
+    return gulp
+        .src(files)
+        .pipe($.clean());
+    //clean(files, done);
+});
+
+gulp.task('templatecache', ['clean-code'], function () {
+    log('Creating AngularJS $templateCache');
+
+    return gulp
+        .src(config.htmltemplates)
+        .pipe($.minifyHtml({
+            empty: true
+        }))
+        .pipe($.angularTemplatecache(
+            config.templateCache.file,
+            config.templateCache.options))
+        .pipe(gulp.dest(config.temp));
 });
 
 gulp.task('less-watcher', function () {
