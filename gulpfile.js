@@ -33,7 +33,7 @@ gulp.task('clean', function (done) {
     var delconfig = [].concat(config.build, config.temp);
     log('Cleaning: ' + $.util.colors.cyan(delconfig));
     //del(delconfig, done);
-    
+
     return gulp
         .src(delconfig, {
             read: false
@@ -78,7 +78,7 @@ gulp.task('styles', ['clean-styles'], function () {
     log('Compiling Less --> CSS');
 
     return gulp
-        .src(config.less)        
+        .src(config.less)
         .pipe($.plumber())
         .pipe($.less())
         .pipe($.autoprefixer({
@@ -101,7 +101,7 @@ gulp.task('images', ['clean-images'], function () {
     log('Copying and compressing the images');
 
     return gulp
-        .src(config.images)        
+        .src(config.images)
         .pipe($.imagemin({
             optimizationLevel: 4
         }))
@@ -154,7 +154,7 @@ gulp.task('wiredep', function () {
         .pipe(gulp.dest(config.client));
 });
 
-gulp.task('inject', ['wiredep', 'styles'], function () {
+gulp.task('inject', ['wiredep', 'styles', 'templatecache'], function () {
     log('Wire up the app css into the html, and call wiredep ');
 
     return gulp
@@ -163,9 +163,42 @@ gulp.task('inject', ['wiredep', 'styles'], function () {
         .pipe(gulp.dest(config.client));
 });
 
-gulp.task('serve-dev', ['inject'], function () {
+gulp.task('optimize', ['inject'], function () {
 
-    var isDev = true;
+    log('Optmizing the javascript, css, html files');
+
+    // var assets = $.useref.assets({
+    //     searchPath: './'
+    // });
+    var templateCache = config.temp + config.templateCache.file;
+
+    return gulp
+        .src(config.index)
+        .pipe($.plumber())
+        .pipe($.inject(gulp.src(templateCache, {
+            read: false
+        }), {
+            starttag: '<!-- inject:templates:js -->'
+        }))
+        // .pipe(assets)
+        // .pipe(assets.restore())
+        .pipe($.useref({searchPath: './'}))
+        .pipe(gulp.dest(config.build));
+});
+
+gulp.task('serve-build', ['optimize'], function () {
+    serve(false /* isDev = false */);
+});
+
+gulp.task('serve-dev', ['inject'], function () {
+    serve(true /* isDev = true */);
+});
+
+////////////
+
+function serve(isDev){
+
+    //var isDev = true;
 
     var nodeOptions = {
         script: config.nodeServer,
@@ -190,7 +223,7 @@ gulp.task('serve-dev', ['inject'], function () {
         })
         .on('start', function () {
             log('*** nodemon started');
-            startBrowserSync();
+            startBrowserSync(isDev);
         })
         .on('crash', function () {
             log('*** nodemon crashed: script crashed for some reason');
@@ -198,16 +231,15 @@ gulp.task('serve-dev', ['inject'], function () {
         .on('exit', function () {
             log('*** nodemon exited cleanly');
         });
-});
 
-////////////
+}
 
 function changeEvent(event) {
     var srcPattern = new RegExp('/.*(?=/' + config.source + ')/');
     log('File ' + event.path.replace(srcPattern, '') + ' ' + event.type);
 }
 
-function startBrowserSync() {
+function startBrowserSync(isDev) {
 
     if (args.nosync || browserSync.active) {
         return;
@@ -215,19 +247,24 @@ function startBrowserSync() {
 
     log('Starting brower-sync on port ' + port);
 
-    gulp.watch([config.less], ['styles'])
-        .on('change', function (event) {
-            changeEvent(event);
-        });
+    if (isDev){
+        gulp.watch([config.less], ['styles'])
+            .on('change', function (event) {
+                changeEvent(event); });
+    } else {
+        gulp.watch([config.less, config.js, config.html], ['optimize', browserSync.reload])
+            .on('change', function (event) {
+                changeEvent(event); });
+    }
 
     var options = {
         proxy: 'localhost:' + port,
         port: 3000,
-        files: [
+        files: isDev ? [
             config.client + '**/*.*',
             '!' + config.less,
             config.temp + '**/*.css'
-        ],
+        ] : [],
         ghostMode: {
             clicks: true,
             locations: false,
