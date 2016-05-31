@@ -32,33 +32,53 @@ gulp.task('vet', function () {
 gulp.task('clean', function (done) {
     var delconfig = [].concat(config.build, config.temp);
     log('Cleaning: ' + $.util.colors.cyan(delconfig));
-    del(delconfig, done);
+    //del(delconfig, done);
+    
+    return gulp
+        .src(delconfig, {
+            read: false
+        })
+        .pipe($.clean());
 });
 
 gulp.task('clean-fonts', function (done) {
     //clean(config.build + 'fonts/**/*.*', done);
     //del([config.build + 'fonts/**/*.*'], done);
+
     return gulp
-        .src(config.build + 'fonts/**/*.*')
-        .pipe(clean);
+        .src(config.build + 'fonts/**/*.*', {
+            read: false
+        })
+        .pipe($.clean());
 });
 
 gulp.task('clean-images', function (done) {
     //clean(config.build + 'images/**/*.*', done);
-    del(config.build + 'images/**/*.*', done);
+    //del(config.build + 'images/**/*.*', done);
+
+    return gulp
+        .src(config.build + 'images/**/*.*', {
+            read: false
+        })
+        .pipe($.clean());
 });
 
 gulp.task('clean-styles', function (done) {
     //clean(config.temp + '**/*.css', done);
-    del(config.temp + '**/*.css', done);
+    //del(config.temp + '**/*.css', done);
+
+    return gulp
+        .src(config.temp + '**/*.css', {
+            read: false
+        })
+        .pipe($.clean());
 });
 
-gulp.task('styles', function () {
+gulp.task('styles', ['clean-styles'], function () {
     log('Compiling Less --> CSS');
 
     return gulp
-        .src(config.less)
-        .pipe($.clean())
+        .src(config.less)        
         .pipe($.plumber())
         .pipe($.less())
         .pipe($.autoprefixer({
@@ -67,23 +87,21 @@ gulp.task('styles', function () {
         .pipe(gulp.dest(config.temp));
 });
 
-gulp.task('fonts', function () {
+gulp.task('fonts', ['clean-fonts'], function () {
 
     log('Copying fonts');
 
     return gulp
         .src(config.fonts)
-        .pipe($.clean())
         .pipe(gulp.dest(config.build + 'fonts'));
 });
 
-gulp.task('images', function () {
+gulp.task('images', ['clean-images'], function () {
 
     log('Copying and compressing the images');
 
     return gulp
-        .src(config.images)
-        .pipe($.clean())
+        .src(config.images)        
         .pipe($.imagemin({
             optimizationLevel: 4
         }))
