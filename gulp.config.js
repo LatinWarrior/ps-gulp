@@ -4,7 +4,7 @@ module.exports = function() {
     var temp = './.tmp/';
     var server = './src/server/';
 
-    var config = {        
+    var config = {
 
         /**
          * Files paths
@@ -29,7 +29,15 @@ module.exports = function() {
         less: client + 'styles/styles.less',
         server: server,
         temp: temp,
-        
+
+        /**
+     * optimized files
+     */
+        optimized: {
+          app: 'app.js',
+          lib: 'lib.js'
+        },
+
         /**
          * Template Cache.
          */
@@ -45,7 +53,7 @@ module.exports = function() {
          * Browser Sync.
          */
         broserReloadDelay: 1000,
-        
+
         /**
          * Bower and NPM locations
          */
@@ -54,7 +62,7 @@ module.exports = function() {
             directory: './bower_components/',
             ignorePath: '../..'
         },
-        
+
         /**
          * Node settings
          */

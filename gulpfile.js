@@ -67,14 +67,20 @@ gulp.task('clean-styles', function (done) {
     //clean(config.temp + '**/*.css', done);
     //del(config.temp + '**/*.css', done);
 
+    var files = [].concat(
+        config.temp + '**/*.css',
+        config.build + 'styles/**/*.css'
+    );
+
     return gulp
-        .src(config.temp + '**/*.css', {
+        .src(files, {
             read: false
         })
         .pipe($.clean());
 });
 
 gulp.task('styles', ['clean-styles'], function () {
+
     log('Compiling Less --> CSS');
 
     return gulp
@@ -171,6 +177,16 @@ gulp.task('optimize', ['inject'], function () {
     //     searchPath: './'
     // });
     var templateCache = config.temp + config.templateCache.file;
+    var cssFilter = $.filter('**/*.css', {
+        restore: true
+    });
+    var jsLibFilter = $.filter('**/' + config.optimized.lib, {
+        restore: true
+    });
+
+    var jsAppFilter = $.filter('**/' + config.optimized.app, {
+        restore: true
+    });
 
     return gulp
         .src(config.index)
@@ -182,21 +198,41 @@ gulp.task('optimize', ['inject'], function () {
         }))
         // .pipe(assets)
         // .pipe(assets.restore())
-        .pipe($.useref({searchPath: './'}))
+        .pipe(cssFilter)
+        .pipe($.minifyCss())
+        // .pipe($.cleanCss({
+        //     debug: true
+        // }, function (details) {
+        //     console.log(details.name + ':' + details.stats.originalSize);
+        //     console.log(details.name + ':' + details.stats.minifiedSize);
+        // }))
+        .pipe(cssFilter.restore)
+        .pipe(jsLibFilter)
+        .pipe($.uglify())
+        .pipe(jsLibFilter.restore)
+        .pipe(jsAppFilter)
+        .pipe($.ngAnnotate({ add: true }))
+        .pipe($.uglify())
+        .pipe(jsAppFilter.restore)
+        .pipe($.useref({
+            searchPath: './'
+        }))
+        .pipe($.if('*.js', $.uglify()))
+        .pipe($.if('*.css', $.minifyCss()))
         .pipe(gulp.dest(config.build));
 });
 
 gulp.task('serve-build', ['optimize'], function () {
-    serve(false /* isDev = false */);
+    serve(false /* isDev = false */ );
 });
 
 gulp.task('serve-dev', ['inject'], function () {
-    serve(true /* isDev = true */);
+    serve(true /* isDev = true */ );
 });
 
 ////////////
 
-function serve(isDev){
+function serve(isDev) {
 
     //var isDev = true;
 
@@ -207,7 +243,7 @@ function serve(isDev){
             'PORT': port,
             'NODE_ENV': isDev ? 'dev' : 'build'
         },
-        watch: [config.server] // 
+        watch: [config.server] //
     };
 
     $.nodemon(nodeOptions)
@@ -247,14 +283,16 @@ function startBrowserSync(isDev) {
 
     log('Starting brower-sync on port ' + port);
 
-    if (isDev){
+    if (isDev) {
         gulp.watch([config.less], ['styles'])
             .on('change', function (event) {
-                changeEvent(event); });
+                changeEvent(event);
+            });
     } else {
         gulp.watch([config.less, config.js, config.html], ['optimize', browserSync.reload])
             .on('change', function (event) {
-                changeEvent(event); });
+                changeEvent(event);
+            });
     }
 
     var options = {
